@@ -72,6 +72,23 @@ function main() {
     window.addEventListener("resize", resize)
     window.dispatchEvent(new Event('resize'))
 
+    document.querySelectorAll(".mail-desktop > svg")[0].addEventListener('click', () => {
+        const text_box = document.querySelectorAll(".mail-desktop > .text")[0];
+        const copy_msg = document.querySelectorAll(".mail-desktop > .copy-msg")[0];
+
+        navigator.clipboard.writeText(text_box.innerText);
+
+        text_box.classList.add("a88f05b6")
+        copy_msg.classList.add("cd42a41s")
+
+        setTimeout(() => {
+            text_box.classList.remove("a88f05b6")
+            copy_msg.classList.remove("cd42a41s")
+        }, 2000);
+
+    })
+
+
 }
 
 window.isMobile = function(a = navigator.userAgent || navigator.vendor || window.opera) {
