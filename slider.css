@@ -19,7 +19,9 @@
 }
 
 .hidden {
-    visibility: hidden !important;
+    visibility: hidden;
+    opacity: 0;
+    width: 0;
 }
 
 .slider.horizontal>.slide {
@@ -31,6 +33,3 @@
     height: 100%;
 }
 
-.r-425-fit {
-    max-height: 450px;
-}
