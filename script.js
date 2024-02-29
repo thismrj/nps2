@@ -1,7 +1,11 @@
+const GOOGLE_APPS_URL = "https://script.google.com/macros/s/AKfycbxOaNRTOA40lgvzh8PQEcv_XE5TQj1uqzyK7_xJKaNcix3Z04n0klZA-ZpOayq-Q-j7/exec"
+const REDIRECT_URL = "https://motozilla.com.ua/";
+
 const Slider = {
     consts: {
         SLIDE_SCROLL_TIMEOUT: 800,
         HIDE_CLASS: "hidden",
+        SROLL_BEHAVIOR: "smooth"
     },
     current: {
         branch: undefined,
@@ -14,7 +18,9 @@ const Slider = {
         promouters: ["#promouters"],
     },
     media: {
-        critics: ["screen and (max-width: 425px)", "r-425-fit"]
+        critics: {
+            0: ["screen and (max-width: 425px)", "r-425-fit"]
+        }
     },
     next: function () {
         if (this.current.branch === undefined)
@@ -24,28 +30,45 @@ const Slider = {
 
         document
             .querySelector(selector)
-            .scrollIntoView({ behavior: "smooth" });
+            .scrollIntoView({
+                behavior: this.consts.SROLL_BEHAVIOR,
+                block: "center",
+                inline: "center"
+            });
+
+        this.applymedia(this.current.branch, this.current.index);
 
         this.current.index++;
-
-        if (!this.media[this.current.branch])
+    },
+    applymedia: function (branch, index) {
+        if (!this.media[branch] || !this.media[branch][index])
             return;
 
-        const [mquery, reqclass] = this.media[this.current.branch];
+        const [mediaquery, cssclass] = this.media[this.current.branch][index];
 
-        if (window.matchMedia(mquery).matches)
-            document.querySelector('form.card').classList.add(reqclass);
+        if (!window.matchMedia(mediaquery).matches)
+            return;
+
+        document
+            .querySelector('form.card')
+            .classList
+            .add(cssclass);
     },
     update: function () {
         const { branch, index } = this.current;
 
-        if (index - 1 < 0) return;
+        if (!branch || index - 1 < 0)
+            return;
 
         const selector = this.branches[branch][index - 1];
 
         document
             .querySelector(selector)
-            .scrollIntoView({ behavior: "instant", block: "center", inline: "center" });
+            .scrollIntoView({
+                behavior: "instant",
+                block: "center",
+                inline: "center"
+            });
     },
     branch: function (chain_name) {
         this.current.branch = chain_name;
@@ -53,8 +76,14 @@ const Slider = {
             .querySelectorAll(this.branches[this.current.branch].join(","))
             .forEach(element => element.classList.remove(this.consts.HIDE_CLASS));
     },
-    init: function () {
+    init: function (initialjump) {
         visualViewport.addEventListener("resize", () => this.update());
+
+        if (initialjump) {
+            document
+                .querySelector(this.branches.__initial)
+                .scrollIntoView({ behavior: "instant", block: "center", inline: "center" })
+        }
     },
     select: function (selector, event, func, preventDefault = false) {
         document.querySelectorAll(selector).forEach(_element => {
@@ -67,23 +96,61 @@ const Slider = {
                 setTimeout(() => Slider.next(), Slider.consts.SLIDE_SCROLL_TIMEOUT);
             })
         })
+    },
+    slides: function () {
+        return Object.values(this.branches).flat(1);
+    }
+}
+
+const Cookie = {
+    set: (name, value, maxage_s, path = "/", samesite = 'None', secure = true) => {
+        return document.cookie = [
+            `${name}=${value}`,
+            `Max-Age=${maxage_s}`,
+            `path=${path}`,
+            `Same-Site=${samesite}`,
+            (secure ? "Secure" : ""),
+        ].join(";");
+    },
+    get: (name) => {
+        return document.cookie.split("; ")
+            .find((row) => row.startsWith(`${name}=`))
+            ?.split("=")[1] || undefined;
+    },
+    erase: (name) => {
+        return document.cookie = [
+            `${name}="`,
+            `Max-Age=-1`
+        ].join("; ")
     }
 }
 
 function main() {
+    const isOverrided = new URL(location.href).searchParams.has('override');
+    const isVoted = Cookie.get("votedoff");
+
+    // if (isVoted && !isOverrided)
+    //     location.href = REDIRECT_URL;
+
     Slider.init();
+    window.CC = Cookie
     Slider.select('input', 'change', (e) => {
-        const score = Number(e.target.value);
+        const score = Number.parseInt(e.target.value);
 
         if (score < 7)
             Slider.branch("critics");
+
         if (score > 8)
             Slider.branch("promouters");
+
         if (score > 6 && score < 9)
             Slider.branch("neutrals");
-    }, true)
 
-    MailFieldCopyHandler(2000);
+        SendResult(score, "v2")
+
+    }, true)
+    // TODO; once
+    RegisterMailCopyHandler(2000);
 }
 
 function mobile() {
@@ -105,7 +172,19 @@ function mobile() {
     visualViewport.dispatchEvent(new Event('resize'))
 }
 
-function MailFieldCopyHandler(timeout) {
+function SendResult(score, sender) {
+    const params = new URLSearchParams({ $sender: sender, score });
+    const URL = `${GOOGLE_APPS_URL}?${params}`;
+
+    fetch(URL, {
+        mode: "cors",
+        method: "GET"
+    })
+
+    Cookie.set("votedoff", true, 24 * 60 * 60 * 30);
+}
+
+function RegisterMailCopyHandler(timeout) {
     document.querySelector(".mail-desktop > svg").addEventListener('click', () => {
         const text_box = document.querySelector(".mail-desktop > .text");
         const copy_msg = document.querySelector(".mail-desktop > .copy-msg");
