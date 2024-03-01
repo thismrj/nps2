@@ -101,7 +101,7 @@ const Slider = {
 
         if (jumpTo) {
             document
-                .querySelector(this.branches.__initial)
+                .querySelector(jumpTo === '__initial' ? this.branches.__initial : jumpTo)
                 .scrollIntoView({
                     behavior: "instant",
                     block: "center",
