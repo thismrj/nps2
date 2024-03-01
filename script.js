@@ -176,10 +176,7 @@ function SendResult(score, sender) {
     const params = new URLSearchParams({ $sender: sender, score });
     const URL = `${GOOGLE_APPS_URL}?${params}`;
 
-    fetch(URL, {
-        mode: "cors",
-        method: "GET"
-    })
+    fetch(URL, { mode: "cors", method: "GET" })
 
     Cookie.set("votedoff", true, 24 * 60 * 60 * 30);
 }

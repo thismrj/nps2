@@ -517,6 +517,12 @@ h2 {
 
 }
 
+@media screen and (max-width: 540px) {
+    .submit {
+        padding: 1rem 4rem;
+    }
+}
+
 @media screen and (max-width: 480px) {
     :root {
         --font-size-h3: 1em;
