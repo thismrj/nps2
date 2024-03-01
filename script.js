@@ -3,9 +3,13 @@ const REDIRECT_URL = "https://motozilla.com.ua/";
 
 const Slider = {
     consts: {
-        SLIDE_SCROLL_TIMEOUT: 800,
+        INITIAL_SLIDE_SCROLL_TIMEOUT: 800,
+        DEFAULT_SLIDE_SCROLL_TIMEOUT: 300,
         HIDE_CLASS: "hidden",
         SROLL_BEHAVIOR: "smooth"
+    },
+    controls: {
+        next: ".btn-next"
     },
     current: {
         branch: undefined,
@@ -13,6 +17,7 @@ const Slider = {
     },
     branches: {
         __initial: "#score",
+        v1: ["#optional-feedback", "#critics"],
         critics: ["#critics",],
         neutrals: ["#neutrals",],
         promouters: ["#promouters"],
@@ -20,6 +25,9 @@ const Slider = {
     media: {
         critics: {
             0: ["screen and (max-width: 425px)", "r-425-fit"]
+        },
+        v1: {
+            1: ["screen and (max-width: 425px)", "r-425-fit"]
         }
     },
     next: function () {
@@ -72,17 +80,33 @@ const Slider = {
     },
     branch: function (chain_name) {
         this.current.branch = chain_name;
+        // this.releaseBranch();
         document
             .querySelectorAll(this.branches[this.current.branch].join(","))
             .forEach(element => element.classList.remove(this.consts.HIDE_CLASS));
     },
-    init: function (initialjump) {
+    releaseBranch: function () {
+
+    },
+    init: function ({ jumpTo } = { jumpTo: "__initial" }) {
         visualViewport.addEventListener("resize", () => this.update());
 
-        if (initialjump) {
+        document.querySelectorAll(this.controls.next)
+            .forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setTimeout(() => Slider.next(), Slider.consts.DEFAULT_SLIDE_SCROLL_TIMEOUT);
+                });
+            })
+
+        if (jumpTo) {
             document
                 .querySelector(this.branches.__initial)
-                .scrollIntoView({ behavior: "instant", block: "center", inline: "center" })
+                .scrollIntoView({
+                    behavior: "instant",
+                    block: "center",
+                    inline: "center"
+                })
         }
     },
     select: function (selector, event, func, preventDefault = false) {
@@ -93,7 +117,7 @@ const Slider = {
 
                 func(_event, _element);
 
-                setTimeout(() => Slider.next(), Slider.consts.SLIDE_SCROLL_TIMEOUT);
+                setTimeout(() => Slider.next(), Slider.consts.INITIAL_SLIDE_SCROLL_TIMEOUT);
             })
         })
     },
@@ -125,17 +149,31 @@ const Cookie = {
     }
 }
 
+const QueryParameters = {
+    get: function (name) {
+        return (
+            this.
+                __getQueryParams()
+                .find(([key,]) => key == name)
+            ?.[1]
+        )
+    },
+    __getQueryParams: () => {
+        return Array.from(new URLSearchParams(location.search).entries());
+    },
+}
+
 function main() {
-    const isOverrided = new URL(location.href).searchParams.has('override');
-    const isVoted = Cookie.get("votedoff");
-
-    // if (isVoted && !isOverrided)
-    //     location.href = REDIRECT_URL;
-
     Slider.init();
-    window.CC = Cookie
+
     Slider.select('input', 'change', (e) => {
         const score = Number.parseInt(e.target.value);
+
+        if (Number.parseInt(QueryParameters.get("m")) == 1) {
+            Slider.branch("v1");
+
+            return;
+        }
 
         if (score < 7)
             Slider.branch("critics");
@@ -146,11 +184,12 @@ function main() {
         if (score > 6 && score < 9)
             Slider.branch("neutrals");
 
-        SendResult(score, "v2")
-
+        SendResult("v2", score);
     }, true)
-    // TODO; once
-    RegisterMailCopyHandler(2000);
+
+    // TODO; do once
+    AttachMailCopyHandler(2000);
+    AttachSubmitHandler();
 }
 
 function mobile() {
@@ -172,16 +211,30 @@ function mobile() {
     visualViewport.dispatchEvent(new Event('resize'))
 }
 
-function SendResult(score, sender) {
-    const params = new URLSearchParams({ $sender: sender, score });
+function SendResult(sender, score, feedback = undefined) {
+    const params = new URLSearchParams({
+        $sender: sender,
+        score,
+        ...(feedback && { feedback })
+    });
     const URL = `${GOOGLE_APPS_URL}?${params}`;
 
     fetch(URL, { mode: "cors", method: "GET" })
-
-    Cookie.set("votedoff", true, 24 * 60 * 60 * 30);
 }
 
-function RegisterMailCopyHandler(timeout) {
+function AttachSubmitHandler() {
+    document.querySelector(".submit").addEventListener('click', () => {
+        const fd = new FormData(document.querySelector("form"));
+
+        SendResult(
+            "v1",
+            fd.get("score"),
+            fd.get("feedback")
+        )
+    })
+}
+
+function AttachMailCopyHandler(timeout) {
     document.querySelector(".mail-desktop > svg").addEventListener('click', () => {
         const text_box = document.querySelector(".mail-desktop > .text");
         const copy_msg = document.querySelector(".mail-desktop > .copy-msg");
