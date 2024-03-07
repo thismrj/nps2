@@ -74,7 +74,9 @@ html {
     flex-basis: 100%;
 }
 
-* {
+*,
+*::after,
+*::before {
     -webkit-tap-highlight-color: transparent;
     box-sizing: border-box;
     padding: 0;
@@ -93,7 +95,7 @@ html {
     max-height: 380px;
     width: calc(100vw - 1rem);
     height: 100vh;
-    padding: 1.5rem;
+    padding: .75rem;
     margin: var(--card-margin);
     border-radius: 1rem;
     padding-top: calc(var(--logo-height) / 2);
@@ -245,13 +247,13 @@ input[type="radio"]:checked+label {
     user-select: none;
 }
 
-.submit {
+.btn {
     cursor: pointer;
     opacity: .8;
     padding: 1rem 8rem;
     display: block;
     font-weight: 800;
-    margin: .8rem .5rem 0 .5rem;
+    margin: .8rem .5rem;
     user-select: none;
     text-align: center;
     border-radius: .5rem;
@@ -268,7 +270,7 @@ input[type="radio"]:checked+label {
     transition: box-shadow 1s;
 }
 
-.submit:hover {
+.btn:hover {
     opacity: 1;
     box-shadow: var(--button-hover-box-shadow);
     -webkit-box-shadow: var(--button-hover-box-shadow);
@@ -428,7 +430,7 @@ h2 {
     margin-top: 0;
 }
 
-#promouters .submit {
+#promouters .btn {
     margin-top: 2.5rem;
 }
 
@@ -446,6 +448,50 @@ h2 {
 
 #promouters p {
     text-align: center;
+}
+
+.flex-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+textarea.feedback {
+    display: flex;
+    flex: 1 1 auto;
+    resize: none;
+    cursor: auto;
+    margin: 0 .5rem;
+    padding: 1rem;
+    border-radius: .5rem;
+    border: 1px solid rgba(128, 128, 128, .7);
+    background-color: var(--feedback-bg-color);
+    color: var(--primary-font-color);
+    font-size: var(--font-size-h3);
+    font-family: var(--primary-font-family);
+}
+
+.column {
+    flex-direction: column;
+}
+
+.icon-tiktok {
+    position: relative;
+}
+
+.icon-tiktok::after {
+    content: "";
+
+    height: 100%;
+    width: 100%;
+    border-radius: 50%;
+    
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    padding: 1px;
+    border: 1px solid rgba(53, 53, 53, 0.89);
 }
 
 /* Color schemes */
@@ -467,6 +513,10 @@ h2 {
 
     .mail-desktop {
         background-color: rgba(var(--color-gray), .3);
+    }
+
+    .icon-tiktok::after {
+        display: none
     }
 
 }
@@ -502,7 +552,7 @@ h2 {
         padding: auto 0;
     }
 
-    #promouters .submit {
+    #promouters .btn {
         margin-top: 1.5rem;
     }
 
@@ -518,7 +568,7 @@ h2 {
 }
 
 @media screen and (max-width: 540px) {
-    .submit {
+    .btn {
         padding: 1rem 4rem;
     }
 }
@@ -548,7 +598,7 @@ h2 {
         margin-top: .8rem;
     }
 
-    #promouters .submit {
+    #promouters .btn {
         margin-top: 1rem;
     }
 
@@ -586,7 +636,7 @@ h2 {
         max-height: 460px;
     }
 
-    #promouters .submit {
+    #promouters .btn {
         margin-top: 1.3rem;
     }
 
@@ -601,7 +651,7 @@ h2 {
 
     .quality-controll>div {
         width: 100%;
-        height: auto; 
+        height: auto;
         padding: 0 1rem;
         display: block;
     }
@@ -648,7 +698,7 @@ h2 {
         --logo-height: 5rem;
     }
 
-    #promouters .submit {
+    #promouters .btn {
         margin-top: 1.5rem;
     }
 }

@@ -3,7 +3,8 @@ const REDIRECT_URL = "https://motozilla.com.ua/";
 
 const Slider = {
     consts: {
-        SLIDE_SCROLL_TIMEOUT: 800,
+        INITIAL_SLIDE_SCROLL_TIMEOUT: 800,
+        DEFAULT_SLIDE_SCROLL_TIMEOUT: 300,
         HIDE_CLASS: "hidden",
         SROLL_BEHAVIOR: "smooth"
     },
@@ -76,29 +77,47 @@ const Slider = {
             .querySelectorAll(this.branches[this.current.branch].join(","))
             .forEach(element => element.classList.remove(this.consts.HIDE_CLASS));
     },
-    init: function (initialjump) {
+    init: function ({ jumpTo } = { jumpTo: "__initial" }) {
         visualViewport.addEventListener("resize", () => this.update());
 
-        if (initialjump) {
+        if (jumpTo) {
             document
-                .querySelector(this.branches.__initial)
-                .scrollIntoView({ behavior: "instant", block: "center", inline: "center" })
+                .querySelector(jumpTo === '__initial' ? this.branches.__initial : jumpTo)
+                .scrollIntoView({
+                    behavior: "instant",
+                    block: "center",
+                    inline: "center"
+                })
         }
     },
-    select: function (selector, event, func, preventDefault = false) {
+    select: function (selector, event, func, { preventDefault = false, afterFn = undefined, once = false } = { preventDefault: false, afterFn: undefined, once: false }) {
         document.querySelectorAll(selector).forEach(_element => {
             _element.addEventListener(event, (_event) => {
                 if (preventDefault)
                     _event.preventDefault();
 
-                func(_event, _element);
+                const handlerresult = func(_event, this);
+                afterFn?.(handlerresult);
 
-                setTimeout(() => Slider.next(), Slider.consts.SLIDE_SCROLL_TIMEOUT);
-            })
+                setTimeout(() => Slider.next(), Slider.consts.INITIAL_SLIDE_SCROLL_TIMEOUT);
+            }, { once })
         })
-    },
-    slides: function () {
-        return Object.values(this.branches).flat(1);
+    }
+}
+
+const API = {
+    send: (sender, score, feedback = undefined) => {
+        const params = new URLSearchParams({
+            $sender: sender,
+            score,
+            ...(feedback && { feedback })
+        });
+
+        return fetch(
+            `${GOOGLE_APPS_URL}?${params}`, {
+            mode: "cors",
+            method: "GET"
+        });
     }
 }
 
@@ -125,77 +144,82 @@ const Cookie = {
     }
 }
 
-function main() {
-    const isOverrided = new URL(location.href).searchParams.has('override');
-    const isVoted = Cookie.get("votedoff");
+const QueryParameters = {
+    get: function (name, interpret_as = undefined) {
+        const parameter = (
+            this.
+                __getQueryParams()
+                .find(([key,]) => key == name)
+        );
 
-    // if (isVoted && !isOverrided)
-    //     location.href = REDIRECT_URL;
+        if (!parameter)
+            return;
+
+        return interpret_as?.(parameter[1]) || parameter?.[1];
+    },
+    __getQueryParams: () => Array.from(new URLSearchParams(location.search).entries()),
+}
+
+function main() {
+    AttachHendlers();
 
     Slider.init();
-    window.CC = Cookie
-    Slider.select('input', 'change', (e) => {
-        const score = Number.parseInt(e.target.value);
+    Slider.select(
+        'input[name="score"]',
+        'change',
+        (event, slider) => {
+            const score = Number.parseInt(event.target.value);
+            const mode = QueryParameters.get("m", Number.parseInt);
 
-        if (score < 7)
-            Slider.branch("critics");
+            if (score < 7)
+                slider.branch("critics");
 
-        if (score > 8)
-            Slider.branch("promouters");
+            if (score > 8)
+                slider.branch("promouters");
 
-        if (score > 6 && score < 9)
-            Slider.branch("neutrals");
+            if (score > 6 && score < 9)
+                slider.branch("neutrals");
 
-        SendResult(score, "v2")
+            if (mode !== 1 && score > 6)
+                slider.branch("neutrals")
 
-    }, true)
-    // TODO; once
-    RegisterMailCopyHandler(2000);
+            return { score, mode }
+        },
+        {
+            preventDefault: true,
+            once: true,
+            afterFn: ({ score }) => API.send("v2", score)
+        }
+    );
 }
 
-function mobile() {
+function AttachHendlers() {
     visualViewport.addEventListener("resize", () => {
-        const isMobile = isMobileDevice();
-
-        // * Change 'mail' from field to icon
-        if (isMobile) {
+        if (isMobileDevice()) {
             document.querySelector('.mail-desktop').setAttribute("style", "display: none");
             document.querySelector('.mail-mobile').removeAttribute("style");
-
-            return;
+        } else {
+            document.querySelector('.mail-desktop').removeAttribute("style");
+            document.querySelector('.mail-mobile').setAttribute("style", "display: none");
         }
-
-        document.querySelector('.mail-desktop').removeAttribute("style");
-        document.querySelector('.mail-mobile').setAttribute("style", "display: none");
     });
 
-    visualViewport.dispatchEvent(new Event('resize'))
-}
+    visualViewport.dispatchEvent(new Event('resize'));
 
-function SendResult(score, sender) {
-    const params = new URLSearchParams({ $sender: sender, score });
-    const URL = `${GOOGLE_APPS_URL}?${params}`;
-
-    fetch(URL, { mode: "cors", method: "GET" })
-
-    Cookie.set("votedoff", true, 24 * 60 * 60 * 30);
-}
-
-function RegisterMailCopyHandler(timeout) {
     document.querySelector(".mail-desktop > svg").addEventListener('click', () => {
         const text_box = document.querySelector(".mail-desktop > .text");
         const copy_msg = document.querySelector(".mail-desktop > .copy-msg");
 
         navigator.clipboard.writeText(text_box.innerText);
 
-        text_box.setAttribute("style", "color: transparent")
-        copy_msg.setAttribute("style", "visibility: visible")
+        text_box.setAttribute("style", "color: transparent");
+        copy_msg.setAttribute("style", "visibility: visible");
 
         setTimeout(() => {
-            text_box.removeAttribute("style")
-            copy_msg.removeAttribute("style")
-        }, timeout);
-    })
+            text_box.removeAttribute("style");
+            copy_msg.removeAttribute("style");
+        }, 2000);
+    });
 }
 
 function isMobileDevice(userAgent = navigator.userAgent || navigator.vendor || window.opera) {
@@ -206,4 +230,3 @@ function isMobileDevice(userAgent = navigator.userAgent || navigator.vendor || w
 }
 
 document.addEventListener("DOMContentLoaded", main);
-document.addEventListener("DOMContentLoaded", mobile);
