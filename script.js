@@ -8,16 +8,12 @@ const Slider = {
         HIDE_CLASS: "hidden",
         SROLL_BEHAVIOR: "smooth"
     },
-    controls: {
-        next: ".btn-next"
-    },
     current: {
         branch: undefined,
         index: 0
     },
     branches: {
         __initial: "#score",
-        v1: ["#optional-feedback", "#critics"],
         critics: ["#critics",],
         neutrals: ["#neutrals",],
         promouters: ["#promouters"],
@@ -25,9 +21,6 @@ const Slider = {
     media: {
         critics: {
             0: ["screen and (max-width: 425px)", "r-425-fit"]
-        },
-        v1: {
-            1: ["screen and (max-width: 425px)", "r-425-fit"]
         }
     },
     next: function () {
@@ -80,24 +73,12 @@ const Slider = {
     },
     branch: function (chain_name) {
         this.current.branch = chain_name;
-        // this.releaseBranch();
         document
             .querySelectorAll(this.branches[this.current.branch].join(","))
             .forEach(element => element.classList.remove(this.consts.HIDE_CLASS));
     },
-    releaseBranch: function () {
-
-    },
     init: function ({ jumpTo } = { jumpTo: "__initial" }) {
         visualViewport.addEventListener("resize", () => this.update());
-
-        document.querySelectorAll(this.controls.next)
-            .forEach((btn) => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    setTimeout(() => Slider.next(), Slider.consts.DEFAULT_SLIDE_SCROLL_TIMEOUT);
-                });
-            })
 
         if (jumpTo) {
             document
@@ -109,20 +90,34 @@ const Slider = {
                 })
         }
     },
-    select: function (selector, event, func, preventDefault = false) {
+    select: function (selector, event, func, { preventDefault = false, afterFn = undefined, once = false } = { preventDefault: false, afterFn: undefined, once: false }) {
         document.querySelectorAll(selector).forEach(_element => {
             _element.addEventListener(event, (_event) => {
                 if (preventDefault)
                     _event.preventDefault();
 
-                func(_event, _element);
+                const handlerresult = func(_event, this);
+                afterFn?.(handlerresult);
 
                 setTimeout(() => Slider.next(), Slider.consts.INITIAL_SLIDE_SCROLL_TIMEOUT);
-            })
+            }, { once })
         })
-    },
-    slides: function () {
-        return Object.values(this.branches).flat(1);
+    }
+}
+
+const API = {
+    send: (sender, score, feedback = undefined) => {
+        const params = new URLSearchParams({
+            $sender: sender,
+            score,
+            ...(feedback && { feedback })
+        });
+
+        return fetch(
+            `${GOOGLE_APPS_URL}?${params}`, {
+            mode: "cors",
+            method: "GET"
+        });
     }
 }
 
@@ -150,105 +145,81 @@ const Cookie = {
 }
 
 const QueryParameters = {
-    get: function (name) {
-        return (
+    get: function (name, interpret_as = undefined) {
+        const parameter = (
             this.
                 __getQueryParams()
                 .find(([key,]) => key == name)
-            ?.[1]
-        )
+        );
+
+        if (!parameter)
+            return;
+
+        return interpret_as?.(parameter[1]) || parameter?.[1];
     },
-    __getQueryParams: () => {
-        return Array.from(new URLSearchParams(location.search).entries());
-    },
+    __getQueryParams: () => Array.from(new URLSearchParams(location.search).entries()),
 }
 
 function main() {
+    AttachHendlers();
+
     Slider.init();
+    Slider.select(
+        'input[name="score"]',
+        'change',
+        (event, slider) => {
+            const score = Number.parseInt(event.target.value);
+            const mode = QueryParameters.get("m", Number.parseInt);
 
-    Slider.select('input', 'change', (e) => {
-        const score = Number.parseInt(e.target.value);
+            if (score < 7)
+                slider.branch("critics");
 
-        if (Number.parseInt(QueryParameters.get("m")) == 1) {
-            Slider.branch("v1");
+            if (score > 8)
+                slider.branch("promouters");
 
-            return;
+            if (score > 6 && score < 9)
+                slider.branch("neutrals");
+
+            if (mode !== 1 && score > 6)
+                slider.branch("neutrals")
+
+            return { score, mode }
+        },
+        {
+            preventDefault: true,
+            once: true,
+            afterFn: ({ score }) => API.send("v2", score)
         }
-
-        if (score < 7)
-            Slider.branch("critics");
-
-        if (score > 8)
-            Slider.branch("promouters");
-
-        if (score > 6 && score < 9)
-            Slider.branch("neutrals");
-
-        SendResult("v2", score);
-    }, true)
-
-    // TODO; do once
-    AttachMailCopyHandler(2000);
-    AttachSubmitHandler();
+    );
 }
 
-function mobile() {
+function AttachHendlers() {
     visualViewport.addEventListener("resize", () => {
-        const isMobile = isMobileDevice();
-
-        // * Change 'mail' from field to icon
-        if (isMobile) {
+        if (isMobileDevice()) {
             document.querySelector('.mail-desktop').setAttribute("style", "display: none");
             document.querySelector('.mail-mobile').removeAttribute("style");
-
-            return;
+        } else {
+            document.querySelector('.mail-desktop').removeAttribute("style");
+            document.querySelector('.mail-mobile').setAttribute("style", "display: none");
         }
-
-        document.querySelector('.mail-desktop').removeAttribute("style");
-        document.querySelector('.mail-mobile').setAttribute("style", "display: none");
     });
 
-    visualViewport.dispatchEvent(new Event('resize'))
-}
+    visualViewport.dispatchEvent(new Event('resize'));
 
-function SendResult(sender, score, feedback = undefined) {
-    const params = new URLSearchParams({
-        $sender: sender,
-        score,
-        ...(feedback && { feedback })
-    });
-    const URL = `${GOOGLE_APPS_URL}?${params}`;
-
-    fetch(URL, { mode: "cors", method: "GET" })
-}
-
-function AttachSubmitHandler() {
-    document.querySelector(".submit").addEventListener('click', () => {
-        const fd = new FormData(document.querySelector("form"));
-
-        SendResult(
-            "v1",
-            fd.get("score"),
-            fd.get("feedback")
-        )
-    })
-}
-
-function AttachMailCopyHandler(timeout) {
     document.querySelector(".mail-desktop > svg").addEventListener('click', () => {
         const text_box = document.querySelector(".mail-desktop > .text");
         const copy_msg = document.querySelector(".mail-desktop > .copy-msg");
 
         navigator.clipboard.writeText(text_box.innerText);
 
-        text_box.setAttribute("style", "color: transparent")
-        copy_msg.setAttribute("style", "visibility: visible")
+        text_box.setAttribute("style", "color: transparent");
+        copy_msg.setAttribute("style", "visibility: visible");
 
         setTimeout(() => {
-            text_box.removeAttribute("style")
-            copy_msg.removeAttribute("style")
-        }, timeout);
-    })
+            text_box.removeAttribute("style");
+            copy_msg.removeAttribute("style");
+        }, 2000);
+    });
 }
 
 function isMobileDevice(userAgent = navigator.userAgent || navigator.vendor || window.opera) {
@@ -259,4 +230,3 @@ function isMobileDevice(userAgent = navigator.userAgent || navigator.vendor || w
 }
 
 document.addEventListener("DOMContentLoaded", main);
-document.addEventListener("DOMContentLoaded", mobile);

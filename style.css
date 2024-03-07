@@ -74,7 +74,9 @@ html {
     flex-basis: 100%;
 }
 
-* {
+*,
+*::after,
+*::before {
     -webkit-tap-highlight-color: transparent;
     box-sizing: border-box;
     padding: 0;
@@ -469,6 +471,29 @@ textarea.feedback {
     font-family: var(--primary-font-family);
 }
 
+.column {
+    flex-direction: column;
+}
+
+.icon-tiktok {
+    position: relative;
+}
+
+.icon-tiktok::after {
+    content: "";
+
+    height: 100%;
+    width: 100%;
+    border-radius: 50%;
+    
+    position: absolute;
+    display: block;
+    top: 0;
+    left: 0;
+    padding: 1px;
+    border: 1px solid rgba(53, 53, 53, 0.89);
+}
+
 /* Color schemes */
 @media screen and (prefers-color-scheme: dark) {
     :root {
@@ -488,6 +513,10 @@ textarea.feedback {
 
     .mail-desktop {
         background-color: rgba(var(--color-gray), .3);
+    }
+
+    .icon-tiktok::after {
+        display: none
     }
 
 }
@@ -622,7 +651,7 @@ textarea.feedback {
 
     .quality-controll>div {
         width: 100%;
-        height: auto; 
+        height: auto;
         padding: 0 1rem;
         display: block;
     }
