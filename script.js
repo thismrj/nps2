@@ -1,5 +1,7 @@
 const GOOGLE_APPS_URL = "https://script.google.com/macros/s/AKfycbxOaNRTOA40lgvzh8PQEcv_XE5TQj1uqzyK7_xJKaNcix3Z04n0klZA-ZpOayq-Q-j7/exec"
 const REDIRECT_URL = "https://motozilla.com.ua/";
+const COOKIE_NAME = "VotedOff";
+const COOKIE_AGE = 864_000_000; // ~ 10 days;
 
 const Slider = {
     consts: {
@@ -23,7 +25,7 @@ const Slider = {
             0: ["screen and (max-width: 425px)", "r-425-fit"]
         }
     },
-    next: function () {
+    next: function (behavior) {
         if (this.current.branch === undefined)
             return;
 
@@ -32,7 +34,7 @@ const Slider = {
         document
             .querySelector(selector)
             .scrollIntoView({
-                behavior: this.consts.SROLL_BEHAVIOR,
+                behavior: behavior ?? this.consts.SROLL_BEHAVIOR,
                 block: "center",
                 inline: "center"
             });
@@ -77,17 +79,12 @@ const Slider = {
             .querySelectorAll(this.branches[this.current.branch].join(","))
             .forEach(element => element.classList.remove(this.consts.HIDE_CLASS));
     },
-    init: function ({ jumpTo } = { jumpTo: "__initial" }) {
+    init: function ({ toBranch } = { toBranch: "__initial" }) {
         visualViewport.addEventListener("resize", () => this.update());
 
-        if (jumpTo) {
-            document
-                .querySelector(jumpTo === '__initial' ? this.branches.__initial : jumpTo)
-                .scrollIntoView({
-                    behavior: "instant",
-                    block: "center",
-                    inline: "center"
-                })
+        if (toBranch) {
+            this.branch(toBranch);
+            this.next("instant");
         }
     },
     select: function (selector, event, func, { preventDefault = false, afterFn = undefined, once = false } = { preventDefault: false, afterFn: undefined, once: false }) {
@@ -161,34 +158,47 @@ const QueryParameters = {
 }
 
 function main() {
+    const override_cookie = QueryParameters.get("override", Boolean);
+    
     AttachHendlers();
 
-    Slider.init();
+    Slider.init({ 
+        toBranch: override_cookie ?? Cookie.get(COOKIE_NAME) 
+    });
+
     Slider.select(
         'input[name="score"]',
         'change',
         (event, slider) => {
             const score = Number.parseInt(event.target.value);
-            const mode = QueryParameters.get("m", Number.parseInt);
+            const mode = QueryParameters.get("m", Number.parseInt) ?? 0;
+
+            var branch = "";
 
             if (score < 7)
-                slider.branch("critics");
+                branch = "critics"
 
             if (score > 8)
-                slider.branch("promouters");
+                branch = "promouters";
 
             if (score > 6 && score < 9)
-                slider.branch("neutrals");
+                branch = "neutrals";
 
             if (mode !== 1 && score > 6)
-                slider.branch("neutrals")
+                branch = "neutrals";
 
-            return { score, mode }
+            slider
+                .branch(branch);
+
+            return ({ score, mode, branch });
         },
         {
             preventDefault: true,
             once: true,
-            afterFn: ({ score }) => API.send("v2", score)
+            afterFn: ({ score, mode, branch }) => {
+                API.send(`v2/m${mode}`, score);
+                Cookie.set(COOKIE_NAME, "critics", COOKIE_AGE);
+            }
         }
     );
 }
