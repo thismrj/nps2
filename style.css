@@ -248,12 +248,13 @@ input[type="radio"]:checked+label {
 }
 
 .btn {
+    width: 100%;
     cursor: pointer;
     opacity: .8;
-    padding: 1rem 8rem;
+    padding: 1rem 4rem;
+    margin: .8rem .5rem;
     display: block;
     font-weight: 800;
-    margin: .8rem .5rem;
     user-select: none;
     text-align: center;
     border-radius: .5rem;
@@ -430,9 +431,6 @@ h2 {
     margin-top: 0;
 }
 
-#promouters .btn {
-    margin-top: 2.5rem;
-}
 
 #promouters .thanks-wrapper {
     padding: 0 5rem;
@@ -552,10 +550,6 @@ textarea.feedback {
         padding: auto 0;
     }
 
-    #promouters .btn {
-        margin-top: 1.5rem;
-    }
-
     #promouters .thanks-wrapper {
         padding: 0 2.5rem;
     }
@@ -567,11 +561,6 @@ textarea.feedback {
 
 }
 
-@media screen and (max-width: 540px) {
-    .btn {
-        padding: 1rem 4rem;
-    }
-}
 
 @media screen and (max-width: 480px) {
     :root {
@@ -596,10 +585,6 @@ textarea.feedback {
 
     #promouters p {
         margin-top: .8rem;
-    }
-
-    #promouters .btn {
-        margin-top: 1rem;
     }
 
     .links {
@@ -633,11 +618,7 @@ textarea.feedback {
 
 
     .r-425-fit {
-        max-height: 460px;
-    }
-
-    #promouters .btn {
-        margin-top: 1.3rem;
+        max-height: 470px;
     }
 
     #promouters .thanks-wrapper {
@@ -707,10 +688,6 @@ textarea.feedback {
     :root {
         --radio-font-size: .8em;
         --radio-height: 1rem;
-    }
-
-    .quality-controll>div:first-child::before {
-        top: 93%;
     }
 }
 
