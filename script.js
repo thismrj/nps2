@@ -159,11 +159,12 @@ const QueryParameters = {
 
 function main() {
     const override_cookie = QueryParameters.get("override", Boolean);
-    
+    const coockie_lifetime = QueryParameters.get("c", Number.parseInt);
+
     AttachHendlers();
 
-    Slider.init({ 
-        toBranch: override_cookie ?? Cookie.get(COOKIE_NAME) 
+    Slider.init({
+        toBranch: override_cookie ?? Cookie.get(COOKIE_NAME)
     });
 
     Slider.select(
@@ -197,7 +198,7 @@ function main() {
             once: true,
             afterFn: ({ score, mode, branch }) => {
                 API.send(`v2/m${mode}`, score);
-                Cookie.set(COOKIE_NAME, "critics", COOKIE_AGE);
+                Cookie.set(COOKIE_NAME, "critics", coockie_lifetime ?? COOKIE_AGE);
             }
         }
     );
