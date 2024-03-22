@@ -119,10 +119,10 @@ const API = {
 }
 
 const Cookie = {
-    set: (name, value, maxage_s, path = "/", samesite = 'None', secure = true) => {
+    set: (name, value, maxage_ms, path = "/", samesite = 'None', secure = true) => {
         return document.cookie = [
             `${name}=${value}`,
-            `Max-Age=${maxage_s}`,
+            `Expires=${new Date(Date.now() + maxage_ms).toUTCString()}`,
             `path=${path}`,
             `Same-Site=${samesite}`,
             (secure ? "Secure" : ""),
@@ -163,6 +163,10 @@ function main() {
 
     AttachHendlers();
 
+    if (Cookie.get(COOKIE_NAME) && !Cookie.get("90cb93")) {
+        Cookie.erase(COOKIE_NAME);
+    }
+    
     Slider.init({
         toBranch: override_cookie ?? Cookie.get(COOKIE_NAME)
     });
@@ -199,6 +203,7 @@ function main() {
             afterFn: ({ score, mode, branch }) => {
                 API.send(`v2/m${mode}`, score);
                 Cookie.set(COOKIE_NAME, "critics", coockie_lifetime ?? COOKIE_AGE);
+                Cookie.set("90cb93", true, (coockie_lifetime ?? COOKIE_AGE))
             }
         }
     );
